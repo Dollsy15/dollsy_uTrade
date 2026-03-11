@@ -1,96 +1,179 @@
 import sys
+from collections import defaultdict, deque
 
 
-class DataManager:
+class Order:
+    def __init__(self, oid, side, price, qty):
+        self.id = oid
+        self.side = side
+        self.price = float(price)
+        self.qty = int(qty)
+
+
+class OrderBook:
+
     def __init__(self):
-        self.data = []
+        self.bids = defaultdict(deque)
+        self.asks = defaultdict(deque)
+        self.orders = {}
 
-    def add_item(self):
-        value = input("Enter a value: ").strip()
+    def best_bid(self):
+        return max(self.bids.keys()) if self.bids else None
 
-        # Edge Case 1: Empty input
-        if value == "":
-            print("Error: Input cannot be empty.")
-            return
+    def best_ask(self):
+        return min(self.asks.keys()) if self.asks else None
 
-        # Edge Case 2: Duplicate input
-        if value in self.data:
-            print("Error: Duplicate value not allowed.")
-            return
-
-        self.data.append(value)
-        print("Value added successfully.")
-
-    def remove_item(self):
-        value = input("Enter value to remove: ").strip()
-
-        if value not in self.data:
-            print("Error: Value not found.")
-            return
-
-        self.data.remove(value)
-        print("Value removed successfully.")
-
-    def view_items(self):
-        if not self.data:
-            print("No data available.")
-            return
-
-        print("\nStored Values:")
-        for i, item in enumerate(self.data, start=1):
-            print(f"{i}. {item}")
-
-    def clear_items(self):
-        confirm = input("Are you sure you want to clear all data? (y/n): ").lower()
-
-        if confirm == "y":
-            self.data.clear()
-            print("All data cleared.")
+    def add_order(self, order):
+        if order.side == "BUY":
+            self.match_buy(order)
         else:
-            print("Operation cancelled.")
+            self.match_sell(order)
 
+    def match_buy(self, order):
 
-class Application:
-    def __init__(self):
-        self.manager = DataManager()
+        if order.price == 0 and not self.asks:
+            print("NO LIQUIDITY FOR MARKET BUY")
+            return
 
-    def display_menu(self):
-        print("\n==== Mini Project Menu ====")
-        print("1. Add Item")
-        print("2. Remove Item")
-        print("3. View Items")
-        print("4. Clear All Items")
-        print("5. Exit")
+        while order.qty > 0 and self.asks:
 
-    def run(self):
-        while True:
-            self.display_menu()
+            best_price = self.best_ask()
 
-            choice = input("Enter your choice: ").strip()
+            if order.price != 0 and order.price < best_price:
+                break
 
-            if choice == "1":
-                self.manager.add_item()
+            queue = self.asks[best_price]
 
-            elif choice == "2":
-                self.manager.remove_item()
+            while queue and order.qty > 0:
 
-            elif choice == "3":
-                self.manager.view_items()
+                sell = queue[0]
 
-            elif choice == "4":
-                self.manager.clear_items()
+                if sell.id == order.id:
+                    break
 
-            elif choice == "5":
-                print("Exiting application.")
-                sys.exit()
+                trade_qty = min(order.qty, sell.qty)
 
-            else:
-                print("Invalid choice. Please select a valid option.")
+                print(f"TRADE {order.id} {sell.id} {best_price:.2f} {trade_qty}")
+
+                order.qty -= trade_qty
+                sell.qty -= trade_qty
+
+                if sell.qty == 0:
+                    queue.popleft()
+                    del self.orders[sell.id]
+
+            if not queue:
+                del self.asks[best_price]
+
+        if order.qty > 0 and order.price != 0:
+            self.bids[order.price].append(order)
+            self.orders[order.id] = order
+
+    def match_sell(self, order):
+
+        if order.price == 0 and not self.bids:
+            print("NO LIQUIDITY FOR MARKET SELL")
+            return
+
+        while order.qty > 0 and self.bids:
+
+            best_price = self.best_bid()
+
+            if order.price != 0 and order.price > best_price:
+                break
+
+            queue = self.bids[best_price]
+
+            while queue and order.qty > 0:
+
+                buy = queue[0]
+
+                if buy.id == order.id:
+                    break
+
+                trade_qty = min(order.qty, buy.qty)
+
+                print(f"TRADE {buy.id} {order.id} {best_price:.2f} {trade_qty}")
+
+                order.qty -= trade_qty
+                buy.qty -= trade_qty
+
+                if buy.qty == 0:
+                    queue.popleft()
+                    del self.orders[buy.id]
+
+            if not queue:
+                del self.bids[best_price]
+
+        if order.qty > 0 and order.price != 0:
+            self.asks[order.price].append(order)
+            self.orders[order.id] = order
+
+    def cancel(self, oid):
+
+        if oid not in self.orders:
+            return
+
+        order = self.orders[oid]
+        book = self.bids if order.side == "BUY" else self.asks
+
+        queue = book[order.price]
+
+        for i, o in enumerate(queue):
+            if o.id == oid:
+                del queue[i]
+                break
+
+        if not queue:
+            del book[order.price]
+
+        del self.orders[oid]
+
+    def print_book(self):
+
+        print("--- Book ---")
+
+        asks = sorted(self.asks.keys())[:5]
+
+        for p in asks:
+            qty = sum(o.qty for o in self.asks[p])
+            print(f"ASK: {p:.2f} x {qty}")
+
+        bids = sorted(self.bids.keys(), reverse=True)[:5]
+
+        if not bids:
+            print("BID: (empty)")
+        else:
+            for p in bids:
+                qty = sum(o.qty for o in self.bids[p])
+                print(f"BID: {p:.2f} x {qty}")
 
 
 def main():
-    app = Application()
-    app.run()
+
+    book = OrderBook()
+
+    for line in sys.stdin:
+
+        line = line.strip()
+
+        if not line:
+            continue
+
+        parts = line.split()
+
+        if len(parts) == 2 and parts[0] == "CANCEL":
+            book.cancel(parts[1])
+
+        elif len(parts) == 4:
+            oid, side, price, qty = parts
+            order = Order(oid, side, price, qty)
+            book.add_order(order)
+
+        else:
+            print("INVALID INPUT:", line)
+
+    book.print_book()
 
 
 if __name__ == "__main__":

@@ -1,167 +1,179 @@
-# uTrade Solutions Campus Hiring 2026 – Mini Project
+# In-Memory Order Book Engine
 
 ## Overview
+This project implements an in-memory limit order book for a single instrument.  
+The engine processes buy and sell orders and matches them in real-time using price-time priority.
 
-This project is a simple command-line application built in Python that allows users to manage a collection of values. The application provides functionality to add, remove, view, and clear stored items through an interactive menu.
+The system supports:
+- LIMIT orders
+- MARKET orders
+- Order cancellation
 
-The purpose of this project is to demonstrate clean code structure, modular design, and proper handling of user input and edge cases.
+Unmatched orders remain in the book until filled or cancelled.
+
+This project was developed as part of the uTrade Solutions Campus Hiring 2026 Mini Project Assignment.
 
 ---
 
-## Project Structure
+## Features
 
-```
-utrade-mini-project
-│
-├── src
-│   └── main.py
-│
-├── tests
-│
-├── README.md
-├── requirements.txt
-└── .gitignore
-```
+- Supports BUY and SELL limit orders
+- Supports MARKET orders (price = 0)
+- Matches orders using price-time priority
+- Handles partial order fills
+- Supports order cancellation
+- Prevents self-trading
+- Prints the final order book state (top 5 bid and ask levels)
 
-**src/main.py**
-Contains the main program logic including the application flow and data management classes.
+---
 
-**tests/**
-Reserved for future automated test cases.
+## Input Format
 
-**requirements.txt**
-Lists project dependencies (no external libraries are required for this project).
+Orders are read from standard input.
+
+Order format:
+
+ORDER_ID SIDE PRICE QUANTITY
+
+Example:
+
+O1 BUY 100.50 10
+
+Where:
+
+ORDER_ID → unique identifier  
+SIDE → BUY or SELL  
+PRICE → order price (0 means MARKET order)  
+QUANTITY → number of shares  
+
+Cancel order format:
+
+CANCEL ORDER_ID
+
+Example:
+
+CANCEL O2
+
+---
+
+## Output Format
+
+Each executed trade is printed as:
+
+TRADE BUY_ORDER SELL_ORDER PRICE QUANTITY
+
+Example:
+
+TRADE O1 O3 100.50 8
+
+After processing all orders, the final order book is printed.
+
+Example:
+
+--- Book ---
+ASK: 99.00 x 18
+BID: (empty)
+
+---
+
+## Sample Input
+
+O1 BUY 100.50 10  
+O2 BUY 100.50 5  
+O3 SELL 100.50 8  
+O4 SELL 99.00 20  
+CANCEL O2  
+
+---
+
+## Sample Output
+
+TRADE O1 O3 100.50 8  
+TRADE O1 O4 99.00 2  
+
+--- Book ---
+ASK: 99.00 x 18  
+BID: (empty)
 
 ---
 
 ## Design Decisions
 
-The program is designed using a modular approach and consists of two main components:
+The order book maintains two sides:
 
-### Application Class
+Bids (Buy Orders)
+- Stored by price
+- Sorted in descending order
+- FIFO queue at each price level for time priority
 
-Responsible for handling user interaction.
-It displays the menu, reads user choices, and calls the appropriate functions.
+Asks (Sell Orders)
+- Stored by price
+- Sorted in ascending order
+- FIFO queue at each price level
 
-### DataManager Class
-
-Responsible for managing the stored data.
-It provides functions to:
-
-* add new values
-* remove existing values
-* display stored values
-* clear all values
-
-Separating these responsibilities improves readability, maintainability, and makes the system easier to extend.
+This ensures correct price-time priority matching.
 
 ---
 
-## Data Structures Used
+## Matching Logic
 
-### Python List
+When a new order arrives:
 
-A Python list is used to store user-entered values.
-
-Reasons for choosing a list:
-
-* Efficient insertion using `append()`
-* Easy removal using `remove()`
-* Simple iteration for displaying stored values
-* Suitable for small in-memory datasets
-
-Given the limited scope of the assignment, a list provides a clean and efficient solution.
+1. Check the opposite side of the book
+2. If prices cross, start matching
+3. Execute trades based on price-time priority
+4. If quantity remains, add the order to the book
+5. Market orders match until filled or no liquidity exists
 
 ---
 
 ## Edge Cases Handled
 
-The application includes validation to prevent common errors:
-
-* Empty input values
-* Duplicate entries
-* Attempting to remove values that do not exist
-* Viewing items when the list is empty
-* Invalid menu selections
-
-Handling these cases ensures the application remains stable and user-friendly.
+- Partial fills
+- Market orders with no liquidity
+- Order cancellation
+- Empty order book
 
 ---
 
-## How to Build and Run
+## Project Structure
 
-### 1. Clone the repository
-
-```
-git clone <repository-link>
-cd utrade-mini-project
-```
-
-### 2. Run the application
-
-```
-python src/main.py
-```
-
-No external libraries are required.
+dollsy_uTrade  
+│  
+├── src  
+│   └── main.py  
+│  
+├── README.md  
+├── requirements.txt  
+└── .gitignore  
 
 ---
 
-## Example Usage
+## How to Run
 
-```
-==== Mini Project Menu ====
+Clone the repository:
 
-1. Add Item
-2. Remove Item
-3. View Items
-4. Clear All Items
-5. Exit
+git clone https://github.com/YOUR-USERNAME/dollsy_uTrade
 
-Enter your choice: 1
-Enter a value: apple
-Value added successfully.
+Go to the project directory:
 
-Enter your choice: 3
+cd dollsy_uTrade
 
-Stored Values:
-1. apple
-```
+Run the program:
+
+python src/main.py < input.txt
 
 ---
 
-## Trade-offs
+## Limitations
 
-Due to the limited time available for the assignment:
-
-* Data is stored only in memory and is not persisted after the program exits.
-* No external libraries or frameworks were used.
-* The application is implemented as a command-line interface rather than a graphical interface.
-
-These decisions allowed focusing on clean code structure and core functionality.
-
----
-
-## Known Limitations
-
-* Data is not saved after the application closes.
-* The application supports only a single user session.
-* Automated tests are not yet implemented.
-
----
-
-## Future Improvements
-
-Possible improvements for future versions include:
-
-* Adding persistent storage using files or a database
-* Implementing automated unit tests
-* Adding logging for better debugging
-* Creating a REST API interface
-* Supporting multiple users concurrently
+- Supports only a single instrument
+- Data is stored in memory only
+- No advanced order types like IOC or FOK
 
 ---
 
 ## Author
 
-Submitted as part of the **uTrade Solutions Campus Hiring 2026 – Mini Project Assignment**.
+Dollsy Rani 
+Submitted for uTrade Solutions Campus Hiring 2026 Mini Project Assignment
