@@ -1,10 +1,12 @@
 # In-Memory Order Book Engine
 
 ## Overview
+
 This project implements an in-memory limit order book for a single instrument.  
 The engine processes buy and sell orders and matches them in real-time using price-time priority.
 
 The system supports:
+
 - LIMIT orders
 - MARKET orders
 - Order cancellation
@@ -44,7 +46,7 @@ Where:
 ORDER_ID → unique identifier  
 SIDE → BUY or SELL  
 PRICE → order price (0 means MARKET order)  
-QUANTITY → number of shares  
+QUANTITY → number of shares
 
 Cancel order format:
 
@@ -82,14 +84,14 @@ O1 BUY 100.50 10
 O2 BUY 100.50 5  
 O3 SELL 100.50 8  
 O4 SELL 99.00 20  
-CANCEL O2  
+CANCEL O2
 
 ---
 
 ## Sample Output
 
 TRADE O1 O3 100.50 8  
-TRADE O1 O4 99.00 2  
+TRADE O1 O4 99.00 2
 
 --- Book ---
 ASK: 99.00 x 18  
@@ -102,11 +104,13 @@ BID: (empty)
 The order book maintains two sides:
 
 Bids (Buy Orders)
+
 - Stored by price
 - Sorted in descending order
 - FIFO queue at each price level for time priority
 
 Asks (Sell Orders)
+
 - Stored by price
 - Sorted in ascending order
 - FIFO queue at each price level
@@ -141,27 +145,11 @@ When a new order arrives:
 dollsy_uTrade  
 │  
 ├── src  
-│   └── main.py  
+│ └── main.py  
 │  
 ├── README.md  
 ├── requirements.txt  
-└── .gitignore  
-
----
-
-## How to Run
-
-Clone the repository:
-
-git clone https://github.com/YOUR-USERNAME/dollsy_uTrade
-
-Go to the project directory:
-
-cd dollsy_uTrade
-
-Run the program:
-
-python src/main.py < input.txt
+└── .gitignore
 
 ---
 
@@ -175,5 +163,5 @@ python src/main.py < input.txt
 
 ## Author
 
-Dollsy Rani 
+Dollsy Rani
 Submitted for uTrade Solutions Campus Hiring 2026 Mini Project Assignment
